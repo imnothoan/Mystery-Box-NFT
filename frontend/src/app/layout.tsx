@@ -3,6 +3,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, Layout, Menu, Button } from 'antd';
 import Link from 'next/link';
 import { WalletOutlined } from '@ant-design/icons';
+import ConnectWallet from '@/components/ConnectWallet';
 import './globals.css';
 
 const { Header, Content, Footer } = Layout;
@@ -37,9 +38,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
                     { key: 'faucet', label: <Link href="/faucet">Faucet</Link> },
                   ]}
                 />
-                <Button type="primary" icon={<WalletOutlined />} size="large" className="rounded-full">
-                  Connect Wallet
-                </Button>
+                <ConnectWallet />
               </Header>
               <Content className="p-8 max-w-7xl mx-auto w-full">
                 {children}
