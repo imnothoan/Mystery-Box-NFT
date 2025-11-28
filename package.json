@@ -1,0 +1,19 @@
+{
+    "name": "mystery-box-blockchain",
+    "version": "1.0.0",
+    "description": "Smart Contracts for Mystery Box NFT DApp",
+    "scripts": {
+        "test": "hardhat test",
+        "compile": "hardhat compile",
+        "deploy": "hardhat run scripts/deploy.js"
+    },
+    "devDependencies": {
+        "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+        "hardhat": "^2.22.0"
+    },
+    "dependencies": {
+        "@chainlink/contracts": "^1.0.0",
+        "@openzeppelin/contracts": "^5.0.0",
+        "dotenv": "^16.4.0"
+    }
+}
