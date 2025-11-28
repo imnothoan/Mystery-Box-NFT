@@ -16,11 +16,29 @@ export function useWeb3() {
                 const _signer = await _provider.getSigner();
                 const _account = await _signer.getAddress();
                 const _network = await _provider.getNetwork();
+                const chainId = Number(_network.chainId);
+
+                // Check Network (Sepolia = 11155111, Localhost = 31337)
+                // For this demo, we'll warn if not on Localhost or Sepolia
+                if (chainId !== 31337 && chainId !== 11155111) {
+                    alert("Please switch to Sepolia or Localhost!");
+                    try {
+                        await (window as any).ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xaa36a7' }], // Sepolia
+                        });
+                    } catch (switchError: any) {
+                        // This error code indicates that the chain has not been added to MetaMask.
+                        if (switchError.code === 4902) {
+                            console.log("This network is not available in your metamask, please add it");
+                        }
+                    }
+                }
 
                 setProvider(_provider);
                 setSigner(_signer);
                 setAccount(_account);
-                setChainId(Number(_network.chainId));
+                setChainId(chainId);
             } catch (error) {
                 console.error("Failed to connect wallet:", error);
             }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Typography, Button, Tag, Input, Select, message } from 'antd';
+import { Card, Typography, Button, Tag, Input, Select, message, Empty } from 'antd';
 import { ShoppingCartOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -110,7 +110,18 @@ export default function MarketplacePage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-20">Loading marketplace...</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <Card key={i} loading={true} className="h-96" />
+                    ))}
+                </div>
+            ) : listings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <Empty description="No items found in the marketplace" />
+                    <Button type="primary" href="/shop" className="mt-4">
+                        Go to Shop
+                    </Button>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {listings.map((item, index) => (

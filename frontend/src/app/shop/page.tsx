@@ -43,6 +43,7 @@ export default function ShopPage() {
 
     const handleBuy = async () => {
         if (!mysteryToken || !gachaMachine || !account) return message.error("Wallet not connected");
+        if (buying) return; // Debounce
 
         setBuying(true);
         try {
@@ -67,7 +68,13 @@ export default function ShopPage() {
         } catch (error: any) {
             console.error(error);
             setBuying(false);
-            message.error(error.reason || "Transaction failed");
+            if (error.code === 'ACTION_REJECTED') {
+                message.warning("Transaction cancelled by user");
+            } else if (error.reason) {
+                message.error(error.reason);
+            } else {
+                message.error("Transaction failed. Please try again.");
+            }
         }
     };
 
