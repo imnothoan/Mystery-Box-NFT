@@ -2,9 +2,12 @@
 
 import { Button, Card, Typography, message, Modal } from 'antd';
 import { ShoppingCartOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { useContract } from '@/hooks/useContract';
+import { useWeb3 } from '@/hooks/useWeb3';
+import { ethers } from 'ethers';
+import { ipfsToHttp } from '@/utils/ipfs';
 
 const { Title, Paragraph } = Typography;
 
@@ -13,21 +16,59 @@ export default function ShopPage() {
     const [showResult, setShowResult] = useState(false);
     const [result, setResult] = useState<{ rarity: string; image: string } | null>(null);
 
-    const handleBuy = async () => {
-        setBuying(true);
-        // Simulate transaction
-        setTimeout(() => {
-            setBuying(false);
-            const random = Math.random();
-            let rarity = 'Common';
-            if (random > 0.95) rarity = 'Legendary';
-            else if (random > 0.8) rarity = 'Epic';
-            else if (random > 0.5) rarity = 'Rare';
+    const { mysteryToken, gachaMachine, mysteryItem } = useContract();
+    const { account } = useWeb3();
 
-            setResult({ rarity, image: `/images/${rarity.toLowerCase()}.png` }); // Placeholder
-            setShowResult(true);
-            message.success('Mystery Box opened!');
-        }, 3000);
+    useEffect(() => {
+        if (gachaMachine) {
+            const handleGachaResult = (user: string, rarity: string, tokenId: bigint) => {
+                if (user.toLowerCase() === account?.toLowerCase()) {
+                    setBuying(false);
+                    setResult({
+                        rarity,
+                        image: `/images/${rarity.toLowerCase()}.png` // In real app, fetch metadata from tokenId
+                    });
+                    setShowResult(true);
+                    message.success(`You won a ${rarity} item!`);
+                }
+            };
+
+            gachaMachine.on('GachaResult', handleGachaResult);
+
+            return () => {
+                gachaMachine.off('GachaResult', handleGachaResult);
+            };
+        }
+    }, [gachaMachine, account]);
+
+    const handleBuy = async () => {
+        if (!mysteryToken || !gachaMachine || !account) return message.error("Wallet not connected");
+
+        setBuying(true);
+        try {
+            // 1. Check Allowance
+            const price = ethers.parseEther("10");
+            const allowance = await mysteryToken.allowance(account, await gachaMachine.getAddress());
+
+            if (allowance < price) {
+                message.info("Approving tokens...");
+                const txApprove = await mysteryToken.approve(await gachaMachine.getAddress(), price);
+                await txApprove.wait();
+                message.success("Approved!");
+            }
+
+            // 2. Spin
+            message.info("Spinning the Gacha...");
+            const txSpin = await gachaMachine.spin();
+            await txSpin.wait();
+            message.success("Transaction sent! Waiting for result...");
+
+            // Result handled by event listener
+        } catch (error: any) {
+            console.error(error);
+            setBuying(false);
+            message.error(error.reason || "Transaction failed");
+        }
     };
 
     return (
@@ -75,10 +116,11 @@ export default function ShopPage() {
                             size="large"
                             loading={buying}
                             onClick={handleBuy}
+                            disabled={!account}
                             icon={<ShoppingCartOutlined />}
                             className="w-full h-14 text-xl rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 border-none hover:opacity-90 shadow-lg shadow-blue-200"
                         >
-                            {buying ? 'Opening...' : 'Buy Now'}
+                            {buying ? 'Opening...' : (account ? 'Buy Now' : 'Connect Wallet')}
                         </Button>
                     </div>
                 </Card>

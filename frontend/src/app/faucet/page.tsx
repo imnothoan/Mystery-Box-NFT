@@ -2,8 +2,11 @@
 
 import { Button, Card, Typography, Statistic, message } from 'antd';
 import { GiftOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useContract } from '@/hooks/useContract';
+import { useWeb3 } from '@/hooks/useWeb3';
+import { ethers } from 'ethers';
 
 const { Title, Paragraph } = Typography;
 const { Countdown } = Statistic;
@@ -11,15 +14,49 @@ const { Countdown } = Statistic;
 export default function FaucetPage() {
     const [loading, setLoading] = useState(false);
     const [cooldown, setCooldown] = useState<number | null>(null);
+    const { mysteryToken } = useContract();
+    const { account } = useWeb3();
+
+    useEffect(() => {
+        if (mysteryToken && account) {
+            checkCooldown();
+        }
+    }, [mysteryToken, account]);
+
+    const checkCooldown = async () => {
+        try {
+            const lastAccess = await mysteryToken?.lastFaucetAccess(account);
+            const cooldownTime = 24 * 60 * 60; // 1 day in seconds
+            const nextAccess = Number(lastAccess) + cooldownTime;
+            const now = Math.floor(Date.now() / 1000);
+
+            if (nextAccess > now) {
+                setCooldown(nextAccess * 1000);
+            }
+        } catch (error) {
+            console.error("Error checking cooldown:", error);
+        }
+    };
 
     const handleClaim = async () => {
+        if (!mysteryToken) return message.error("Contract not loaded");
+
         setLoading(true);
-        // Simulate API call / Contract interaction
-        setTimeout(() => {
-            setLoading(false);
-            setCooldown(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+        try {
+            const tx = await mysteryToken.faucet();
+            await tx.wait();
             message.success('Successfully claimed 100 MST!');
-        }, 2000);
+            checkCooldown();
+        } catch (error: any) {
+            console.error(error);
+            if (error.reason) {
+                message.error(error.reason);
+            } else {
+                message.error('Failed to claim tokens');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -53,9 +90,10 @@ export default function FaucetPage() {
                                 size="large"
                                 loading={loading}
                                 onClick={handleClaim}
+                                disabled={!account}
                                 className="w-full h-12 text-lg rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 border-none hover:opacity-90"
                             >
-                                Claim Tokens
+                                {account ? 'Claim Tokens' : 'Connect Wallet First'}
                             </Button>
                         )}
                     </div>
